@@ -4,13 +4,21 @@
 	*/
 	class TimeTable
 	{
+		public $courses;
+		public $maxmiumCourseTaking;
+		public $message;
+
+		private $numOfSulotion;
+		private $isChange;
+		private $tables;
 		function __construct($max="5")
 		{
 			$this->courses = [];
-			$this->numberOfCourses = 0;
 			$this->maxmiumCourseTaking = $max;
 			$this->numOfSulotion = 10; // 
 			$this->message = "";
+			$this->isChange = True;
+			$this->tables = [];
 
 		}
 
@@ -21,6 +29,9 @@
 		}
 
 		public function toString(){
+			if ($this->isChange) 
+				getTablesInArray();
+						
 			$r = "";
 			foreach ($this->courses as $var) {
 				$r .= $var->name.",";
@@ -28,10 +39,24 @@
 			return $r;
 		}		
 
-		public function toArray(){
+		public function toArrayWithTitle(){
+			if ($this->isChange) 
+				getTablesInArray();
+						
 			$r = [];
 			foreach ($this->courses as $var) {
 				$r[] = [$var->name, $var->courseTitle];
+			}
+			return $r;
+		}
+
+		public function toArray(){
+			if ($this->isChange) 
+				getTablesInArray();
+			
+			$r = [];
+			foreach ($this->courses as $var) {
+				$r[] = $var->name;
 			}
 			return $r;
 		}
@@ -45,16 +70,16 @@
 			if ($this->checkTimeConflict($c)) {
 				// TODO:add..........
 				array_push($this->courses, $c);
-				$this->numberOfCourses ++;
 				return true;
 			} else {
 				return false;
 			}
+			$this->isChange = True;
 		}
 
 		public function isFull()
 		{
-			return $this->numberOfCourses >= $this->maxmiumCourseTaking;
+			return sizeof($this->courses) >= $this->maxmiumCourseTaking;
 		}
 
 		public function checkTimeConflict($value='')
@@ -76,7 +101,7 @@
 		 * @param  [type] $y           start point in sub-array
 		 * @return [type]              [description]
 		 */
-		public function recursiveGetTimeTables(&$result, $combination, $path, $x, $y){
+		private function recursiveGetTimeTables(&$result, $combination, $path, $x, $y){
 			if (isset($combination[$x]) and isset($combination[$x][$y])) {
 
 				if(!hasTimeConflictArrayToClass($this->getArrayByPath($path, $combination), $combination[$x][$y])) {
@@ -94,6 +119,7 @@
 
 						if ($this->numOfSulotion!= 0) {
 							// next solution
+							array_pop($path);
 							$this->recursiveGetTimeTables($result, $combination, $path, $x, $y+1);
 						}
 					} else {
@@ -118,7 +144,7 @@
 			}
 		}
 
-		public function getArrayByPath($path, $array) {
+		private function getArrayByPath($path, $array) {
 			$result = [];
 			foreach ($path as $p) {
 				$result[] = $array[$p[0]][$p[1]];
@@ -133,24 +159,30 @@
 
 		public function getTablesInArray()
 		{
-			$combination = [];
-			foreach ($this->courses as $couse) {
-				$combination[] = $couse->getCourseCombination();
-			}
-			$result = [];
-			if (sizeof($combination) == 0) {
-				return [];
-			}
-			$this->recursiveGetTimeTables($result, $combination, [], 0, 0);
+			if ($this->isChange) {
+				$this->isChange = False;
+				$combination = [];
+				foreach ($this->courses as $couse) {
+					$combination[] = $couse->getCourseCombination();
+				}
+				$result = [];
+				if (sizeof($combination) == 0) {
+					return [];
+				}
 
-			$size = $this->numberOfCourses;
-			while ($result == []) {
-				array_pop($combination);
-				$size--;
-				$this->message .= $this->courses[$size-1]->name." has non-fixable time conflict\n";
-				$this->recursiveGetTimeTables($result, $combination, [], 0, 0);
+				while ($result == []) {
+					// Take out one courses
+					$this->recursiveGetTimeTables($result, $combination, [], 0, 0);
+					if ($result != []) 
+						break;
+					array_pop($combination);
+					$course = array_pop($this->courses);
+					$this->message .= $course->name." has non-fixable time conflict\n";
+				}
+				$this->tables = $result;
+
 			}
-			return $result;
+			return $this->tables;
 		}
 	}
 
@@ -272,10 +304,6 @@
 				$this->courseCombination = sizeof($lectures);
 			}
 
-			if (sizeof($result) == 1) {
-				// d($result);
-				// d($this);
-			}
 			return $result;
 		}
 	}

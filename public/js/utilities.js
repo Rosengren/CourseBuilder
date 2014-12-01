@@ -273,9 +273,11 @@ function loadTimetableContent(customParams) {
       params = customParams;
     }
 
+    console.log(params);
+    
     // request 
     AJAXRequest( function(response) {
-        console.log(response);
+        // console.log(response);
         var json = JSON.parse(response);
 
         // add courses to sidebar
